@@ -509,26 +509,46 @@ class BRDGeneratorApp(QMainWindow):
         """Load data sources for current project"""
         if not self.current_project:
             return
-        
+
         try:
             response = requests.get(
                 f"{self.api_base_url}/data-sources/",
-                params={"project": self.current_project['id']}
+                params={"project": self.current_project["id"]},
+                timeout=10
             )
-            
-            if response.status_code == 200:
-                sources = response.json()
-                self.sources_table.setRowCount(len(sources))
-                
-                for i, source in enumerate(sources):
-                    self.sources_table.setItem(i, 0, QTableWidgetItem(source['source_type']))
-                    self.sources_table.setItem(i, 1, QTableWidgetItem(source['source_identifier'][:50]))
-                    self.sources_table.setItem(i, 2, QTableWidgetItem("Yes" if source['is_relevant'] else "No"))
-                    self.sources_table.setItem(i, 3, QTableWidgetItem(f"{source['relevance_score']:.2f}"))
-                    self.sources_table.setItem(i, 4, QTableWidgetItem(source['created_at'][:10]))
-        
+
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, dict):
+                sources = data.get("results") or data.get("data") or []
+            elif isinstance(data, list):
+                sources = data
+            else:
+                raise ValueError("Unexpected API response format")
+
+            self.sources_table.setRowCount(len(sources))
+
+            for row, source in enumerate(sources):
+                self.sources_table.setItem(
+                    row, 0, QTableWidgetItem(str(source.get("source_type", "")))
+                )
+                self.sources_table.setItem(
+                    row, 1, QTableWidgetItem(str(source.get("source_identifier", ""))[:50])
+                )
+                self.sources_table.setItem(
+                    row, 2, QTableWidgetItem("Yes" if source.get("is_relevant") else "No")
+                )
+                self.sources_table.setItem(
+                    row, 3, QTableWidgetItem(f"{source.get('relevance_score', 0):.2f}")
+                )
+                self.sources_table.setItem(
+                    row, 4, QTableWidgetItem(str(source.get("created_at", ""))[:10])
+                )
+
         except Exception as e:
             print(f"Error loading data sources: {e}")
+
     
     def process_sources(self):
         """Process data sources to extract requirements"""
@@ -555,27 +575,49 @@ class BRDGeneratorApp(QMainWindow):
         """Load requirements for current project"""
         if not self.current_project:
             return
-        
+
         try:
             response = requests.get(
                 f"{self.api_base_url}/requirements/",
-                params={"project_id": self.current_project['id']}
+                params={"project_id": self.current_project["id"]},
+                timeout=10
             )
-            
-            if response.status_code == 200:
-                requirements = response.json()
-                self.requirements_table.setRowCount(len(requirements))
-                
-                for i, req in enumerate(requirements):
-                    self.requirements_table.setItem(i, 0, QTableWidgetItem(req['title'][:50]))
-                    self.requirements_table.setItem(i, 1, QTableWidgetItem(req['requirement_type']))
-                    self.requirements_table.setItem(i, 2, QTableWidgetItem(req['priority']))
-                    self.requirements_table.setItem(i, 3, QTableWidgetItem(req.get('stakeholder', '')))
-                    self.requirements_table.setItem(i, 4, QTableWidgetItem(f"{req['confidence_score']:.2f}"))
-                    self.requirements_table.setItem(i, 5, QTableWidgetItem(req['data_source_type']))
-        
+
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, dict):
+                requirements = data.get("results") or data.get("data") or []
+            elif isinstance(data, list):
+                requirements = data
+            else:
+                raise ValueError("Unexpected API response format")
+
+            self.requirements_table.setRowCount(len(requirements))
+
+            for row, req in enumerate(requirements):
+                self.requirements_table.setItem(
+                    row, 0, QTableWidgetItem(str(req.get("title", ""))[:50])
+                )
+                self.requirements_table.setItem(
+                    row, 1, QTableWidgetItem(str(req.get("requirement_type", "")))
+                )
+                self.requirements_table.setItem(
+                    row, 2, QTableWidgetItem(str(req.get("priority", "")))
+                )
+                self.requirements_table.setItem(
+                    row, 3, QTableWidgetItem(str(req.get("stakeholder", "")))
+                )
+                self.requirements_table.setItem(
+                    row, 4, QTableWidgetItem(f"{req.get('confidence_score', 0):.2f}")
+                )
+                self.requirements_table.setItem(
+                    row, 5, QTableWidgetItem(str(req.get("data_source_type", "")))
+                )
+
         except Exception as e:
             print(f"Error loading requirements: {e}")
+
     
     def generate_brd(self):
         """Generate BRD document"""
@@ -607,24 +649,38 @@ class BRDGeneratorApp(QMainWindow):
         """Load BRD documents"""
         if not self.current_project:
             return
-        
+
         try:
             response = requests.get(
                 f"{self.api_base_url}/brd-documents/",
-                params={"project": self.current_project['id']}
+                params={"project": self.current_project["id"]},
+                timeout=10
             )
-            
-            if response.status_code == 200:
-                brds = response.json()
-                self.brd_list.clear()
-                
-                for brd in brds:
-                    item = QListWidgetItem(f"{brd['title']} - v{brd['version']} ({brd['status']})")
-                    item.setData(Qt.UserRole, brd)
-                    self.brd_list.addItem(item)
-        
+
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, dict):
+                brds = data.get("results") or data.get("data") or []
+            elif isinstance(data, list):
+                brds = data
+            else:
+                raise ValueError("Unexpected API response format")
+
+            self.brd_list.clear()
+
+            for brd in brds:
+                title = brd.get("title", "Untitled")
+                version = brd.get("version", "1.0")
+                status = brd.get("status", "unknown")
+
+                item = QListWidgetItem(f"{title} - v{version} ({status})")
+                item.setData(Qt.UserRole, brd)
+                self.brd_list.addItem(item)
+
         except Exception as e:
             print(f"Error loading BRDs: {e}")
+
     
     def select_brd(self, item):
         """Select a BRD document"""
