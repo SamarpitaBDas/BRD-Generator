@@ -380,21 +380,40 @@ class BRDGeneratorApp(QMainWindow):
         """Load all projects"""
         try:
             response = requests.get(f"{self.api_base_url}/projects/")
-            
+
             if response.status_code == 200:
-                projects = response.json()
+                data = response.json()
+
+                # DRF pagination support
+                projects = data.get("results", [])
+
                 self.project_list.clear()
-                
+
                 for project in projects:
-                    item = QListWidgetItem(f"{project['name']} - {project['created_at'][:10]}")
+                    name = project.get("name", "Untitled")
+                    created_at = project.get("created_at", "")[:10]
+
+                    item = QListWidgetItem(f"{name} - {created_at}")
                     item.setData(Qt.UserRole, project)
                     self.project_list.addItem(item)
-                
-                self.statusBar().showMessage(f"Loaded {len(projects)} projects")
-        
+
+                self.statusBar().showMessage(
+                    f"Loaded {len(projects)} projects"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "API Error",
+                    f"Failed to load projects (Status {response.status_code})"
+                )
+
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to load projects: {str(e)}")
-    
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to load projects:\n{str(e)}"
+            )
+
     def select_project(self, item):
         """Select a project"""
         self.current_project = item.data(Qt.UserRole)
