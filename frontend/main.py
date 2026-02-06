@@ -862,25 +862,49 @@ class BRDGeneratorApp(QMainWindow):
         """Load detected conflicts"""
         if not self.current_project:
             return
-        
+
         try:
             response = requests.get(
                 f"{self.api_base_url}/conflicts/",
-                params={"project": self.current_project['id']}
+                params={"project": self.current_project["id"]},
+                timeout=10
             )
-            
-            if response.status_code == 200:
-                conflicts = response.json()
-                self.conflicts_table.setRowCount(len(conflicts))
-                
-                for i, conflict in enumerate(conflicts):
-                    self.conflicts_table.setItem(i, 0, QTableWidgetItem(conflict['conflict_type']))
-                    self.conflicts_table.setItem(i, 1, QTableWidgetItem(conflict['description'][:100]))
-                    self.conflicts_table.setItem(i, 2, QTableWidgetItem(conflict['severity']))
-                    self.conflicts_table.setItem(i, 3, QTableWidgetItem("Resolved" if conflict['resolved'] else "Pending"))
-        
+
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, dict):
+                conflicts = data.get("results") or data.get("data") or []
+            elif isinstance(data, list):
+                conflicts = data
+            else:
+                raise ValueError("Unexpected API response format")
+
+            self.conflicts_table.setRowCount(len(conflicts))
+
+            for i, conflict in enumerate(conflicts):
+                self.conflicts_table.setItem(
+                    i, 0,
+                    QTableWidgetItem(conflict.get("conflict_type", "Unknown"))
+                )
+                self.conflicts_table.setItem(
+                    i, 1,
+                    QTableWidgetItem(conflict.get("description", "")[:100])
+                )
+                self.conflicts_table.setItem(
+                    i, 2,
+                    QTableWidgetItem(conflict.get("severity", "low"))
+                )
+                self.conflicts_table.setItem(
+                    i, 3,
+                    QTableWidgetItem(
+                        "Resolved" if conflict.get("resolved", False) else "Pending"
+                    )
+                )
+
         except Exception as e:
             print(f"Error loading conflicts: {e}")
+
 
 
 def main():
