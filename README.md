@@ -7,6 +7,7 @@ create backend
     - requirements	"http://127.0.0.1:8000/api/requirements/"
     - brd-documents	"http://127.0.0.1:8000/api/brd-documents/"
     - conflicts	"http://127.0.0.1:8000/api/conflicts/"
+  - sentiment - 
 
 steps for installation of backend 
 cd backend
