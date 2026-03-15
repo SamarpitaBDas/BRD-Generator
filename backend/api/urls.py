@@ -12,4 +12,6 @@ router.register(r'conflicts', views.ConflictDetectionViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('health/', views.health_check, name='health-check'),
+    # Amazon Nova 2 Lite – BRD generation
+    path('generate-brd/', views.nova_generate_brd, name='nova-generate-brd'),
 ]

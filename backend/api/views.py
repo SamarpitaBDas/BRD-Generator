@@ -240,3 +240,55 @@ class ConflictDetectionViewSet(viewsets.ModelViewSet):
 def health_check(request):
     """API health check"""
     return Response({'status': 'healthy'})
+
+
+# ---------------------------------------------------------------------------
+# Amazon Nova 2 Lite – BRD generation endpoint
+# ---------------------------------------------------------------------------
+from ml_models.nova_brd_generator import NovaBRDGenerator  # noqa: E402
+
+NOVA_REQUIRED_FIELDS = ["product_name", "problem_statement", "target_users", "key_features"]
+
+@api_view(['POST'])
+def nova_generate_brd(request):
+    """
+    Generate a structured BRD using Amazon Nova 2 Lite via Bedrock.
+
+    Request body (JSON):
+        {
+            "product_name":       "SmartInventory",
+            "problem_statement":  "Warehouses lack real-time stock visibility.",
+            "target_users":       "Warehouse managers and operations staff",
+            "key_features":       "Real-time tracking, low-stock alerts, reporting"
+        }
+
+    Response (JSON):
+        {
+            "brd": "<full BRD text>"
+        }
+    """
+    missing = [f for f in NOVA_REQUIRED_FIELDS if not request.data.get(f, "").strip()]
+    if missing:
+        return Response(
+            {"error": f"Missing required fields: {', '.join(missing)}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        generator = NovaBRDGenerator()
+        brd_text = generator.generate(
+            product_name=request.data["product_name"],
+            problem_statement=request.data["problem_statement"],
+            target_users=request.data["target_users"],
+            key_features=request.data["key_features"],
+        )
+        return Response({"brd": brd_text}, status=status.HTTP_200_OK)
+
+    except RuntimeError as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+    except Exception as exc:  # noqa: BLE001
+        return Response(
+            {"error": "Unexpected error generating BRD.", "detail": str(exc)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

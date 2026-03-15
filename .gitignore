@@ -1,6 +1,11 @@
 /backend/venv/
 /frontend/venv/
+
 __pycache__/
 *.pyc
+
 /backend/db.sqlite3
 /backend/api/migrations/
+
+.env
+.env.*
